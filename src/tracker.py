@@ -333,3 +333,46 @@ class CentroidTracker:
             }
 
         return output
+
+    def _build_single_output(self, obj_id: int) -> dict[str, Any]:
+        s = self.stats[obj_id]
+        first_frame = s["first_seen_frame"]
+        last_frame = s["last_seen_frame"]
+        frame_count = last_frame - first_frame + 1
+        time_in_frame = frame_count / self.fps
+
+        hover_time = sum(seg["duration_s"] for seg in s["hover_segments"])
+        if s["active_hover_start_frame"] is not None:
+            hover_time += (self.frame_index - s["active_hover_start_frame"] + 1) / self.fps
+
+        return {
+            "bbox": self.bboxes[obj_id],
+            "centroid": self.objects[obj_id],
+            "trail": list(self.trails[obj_id][-120:]),
+            "stats": {
+                "first_seen_frame": first_frame,
+                "last_seen_frame": last_frame,
+                "time_in_frame_s": time_in_frame,
+                "pixel_speed_current_px_s": s["pixel_speed_history"][-1]
+                if s["pixel_speed_history"]
+                else 0.0,
+                "pixel_speed_avg_px_s": (sum(s["pixel_speed_history"]) / len(s["pixel_speed_history"]))
+                if s["pixel_speed_history"]
+                else 0.0,
+                "estimated_distance_current_m": s["distance_history_m"][-1]
+                if s["distance_history_m"]
+                else None,
+                "closest_distance_m": s["closest_distance_m"],
+                "estimated_speed_current_mps": s["speed_3d_history_mps"][-1]
+                if s["speed_3d_history_mps"]
+                else None,
+                "estimated_speed_avg_mps": (sum(s["speed_3d_history_mps"]) / len(s["speed_3d_history_mps"]))
+                if s["speed_3d_history_mps"]
+                else None,
+                "hover_duration_s": hover_time,
+                "hover_segments": list(s["hover_segments"]),
+                "position_3d_current_m": s["position_3d_history_m"][-1]
+                if s["position_3d_history_m"]
+                else None,
+            },
+        }
