@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>AerialGuard — Aerial Security Platform</title>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════ HEADER -->
+<header id="app-header">
+  <div class="hdr-left">
+    <svg class="logo-icon" viewBox="0 0 32 32" fill="none">
+      <circle cx="16" cy="16" r="14" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="16" cy="16" r="7"  stroke="currentColor" stroke-width="1.2"/>
+      <line x1="2"  y1="16" x2="10" y2="16" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="22" y1="16" x2="30" y2="16" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="16" y1="2"  x2="16" y2="10" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="16" y1="22" x2="16" y2="30" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="16" cy="16" r="2" fill="currentColor"/>
+    </svg>
+    <div class="logo-text">
+      <span class="logo-name">AERIALGUARD</span>
+      <span class="logo-sub">Aerial Security Platform v2</span>
+    </div>
+  </div>
+
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-page="live">
+      <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="2" fill="currentColor"/></svg>
+      Live Airspace
+    </button>
+    <button class="tab-btn" data-page="tactical">
+      <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      Tactical Map
+    </button>
+    <button class="tab-btn" data-page="incidents">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M3 12L8 3l5 9H3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      Incidents
+    </button>
+    <button class="tab-btn" data-page="analytics">
+      <svg viewBox="0 0 16 16" fill="none"><polyline points="2,12 6,7 10,9 14,4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Flight Analytics
+    </button>
+    <button class="tab-btn" data-page="alerts">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M8 2a5 5 0 015 5c0 3-1 4-1 5H4c0-1-1-2-1-5a5 5 0 015-5z" stroke="currentColor" stroke-width="1.5"/><line x1="6" y1="13" x2="10" y2="13" stroke="currentColor" stroke-width="1.5"/></svg>
+      Alert Queue
+      <span class="nav-badge" id="nav-alert-badge" style="display:none">0</span>
+    </button>
+  </nav>
+
+  <div class="hdr-right">
+    <div class="sys-status">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">CONNECTING</span>
+    </div>
+    <div class="hdr-stats">
+      <span class="hdr-stat"><span id="hdr-objects">—</span> tracked</span>
+      <span class="hdr-stat risk" id="hdr-risk-wrap">
+        RISK <span id="hdr-risk">—</span>
+      </span>
+    </div>
+    <span id="clock" class="clock">—</span>
+  </div>
+</header>
+
+<!-- Alert banner (shown when alerts fire) -->
+<div id="alert-banner" class="alert-banner hidden">
+  <span class="alert-banner-icon">⚠</span>
+  <span id="alert-banner-text">Alert</span>
+  <button onclick="dismissBanner()">✕</button>
+</div>
+
+
+<!-- ══════════════════════════════════════════ PAGE 1: LIVE AIRSPACE -->
+<section id="page-live" class="page active">
+  <div class="live-layout">
+
+    <!-- Left: camera feed -->
+    <div class="live-feed-col">
+      <div class="panel feed-panel">
+        <div class="panel-hdr">
+          <span>LIVE CAMERA FEED</span>
+          <span class="live-dot-badge">● LIVE</span>
+        </div>
+        <div class="feed-wrap">
+          <img id="video-feed" src="/video_feed" alt="Live camera feed"/>
+        </div>
+        <!-- Risk bar under feed -->
+        <div class="risk-bar-row">
+          <span class="risk-label">THREAT LEVEL</span>
+          <div class="risk-bar-track">
+            <div class="risk-bar-fill" id="risk-bar-fill"></div>
+          </div>
+          <span class="risk-val" id="risk-val">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: sidebar panels -->
+    <div class="live-sidebar">
+
+      <!-- System stats row -->
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sv" id="sc-objects">—</div><div class="sl">TRACKED</div>
+        </div>
+        <div class="stat-card warn">
+          <div class="sv" id="sc-inc-today">—</div><div class="sl">TODAY</div>
+        </div>
+        <div class="stat-card">
+          <div class="sv" id="sc-fps">—</div><div class="sl">FPS</div>
+        </div>
+        <div class="stat-card accent">
+          <div class="sv" id="sc-alerts-hr">—</div><div class="sl">ALERTS/HR</div>
+        </div>
+      </div>
+
+      <!-- Active object cards (risk-ranked) -->
+      <div class="panel">
+        <div class="panel-hdr">
+          <span>ACTIVE AERIAL TRACKS</span>
+          <span class="badge" id="tracks-badge">0</span>
+        </div>
+        <div id="active-tracks" class="active-tracks-list">
+          <p class="empty">No objects detected</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════ PAGE 2: TACTICAL MAP -->
+<section id="page-tactical" class="page">
+  <div class="tactical-layout">
+    <div class="panel tactical-panel">
+      <div class="panel-hdr">
+        <span>TACTICAL AIRSPACE VIEW</span>
+        <div class="tactical-controls">
+          <label class="tac-toggle">
+            <input type="checkbox" id="tac-trails" checked/>
+            Show Trails
+          </label>
+          <label class="tac-toggle">
+            <input type="checkbox" id="tac-rings" checked/>
+            Proximity Rings
+          </label>
+        </div>
+      </div>
+      <canvas id="tactical-canvas" class="tactical-canvas"></canvas>
+    </div>
+    <aside class="tactical-sidebar">
+      <div class="panel">
+        <div class="panel-hdr">TRACK LEGEND</div>
+        <div id="tac-legend" class="tac-legend">
+          <p class="empty">No active tracks</p>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-hdr">THREAT KEY</div>
+        <div class="tac-threat-key">
+          <div class="tac-key-row"><span class="tac-key-dot" style="background:#cc44ff"></span><span>Critical — Immediate action</span></div>
+          <div class="tac-key-row"><span class="tac-key-dot" style="background:#ff2244"></span><span>High — Escalate</span></div>
+          <div class="tac-key-row"><span class="tac-key-dot" style="background:#ff8c00"></span><span>Medium — Review</span></div>
+          <div class="tac-key-row"><span class="tac-key-dot" style="background:#00e87a"></span><span>Low — Monitor</span></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════ PAGE 3: INCIDENTS -->
+<section id="page-incidents" class="page">
+
+  <div id="incidents-view">
+    <div class="page-toolbar">
+      <span class="page-title">INCIDENT TIMELINE</span>
+      <div class="toolbar-actions">
+        <button class="btn" onclick="loadIncidents()">↻ Refresh</button>
+      </div>
+    </div>
+    <div id="incident-grid" class="incident-grid">
+      <p class="empty">Loading incidents…</p>
+    </div>
+  </div>
+
+  <div id="incident-detail" class="detail-view" style="display:none">
+    <div class="page-toolbar">
+      <button class="btn btn-back" onclick="closeDetail()">← Back</button>
+      <span class="page-title" id="detail-title">INC-0000</span>
+      <span class="detail-threat-badge" id="detail-threat-badge"></span>
+    </div>
+    <div class="detail-grid">
+
+      <div class="panel detail-video-panel">
+        <div class="panel-hdr">CLIP REPLAY</div>
+        <div class="detail-video-wrap">
+          <video id="detail-video" controls style="display:none"></video>
+          <p id="no-clip-msg" class="empty">No clip recorded for this incident.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hdr">FLIGHT PATH</div>
+        <div class="chart-wrap"><canvas id="traj-chart"></canvas></div>
+      </div>
+
+      <div class="panel detail-stats-panel">
+        <div class="panel-hdr">INCIDENT STATISTICS</div>
+        <table class="stats-tbl" id="detail-stats-tbl"></table>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hdr">ALERT TIMELINE</div>
+        <div id="alert-timeline" class="alert-timeline-list"></div>
+      </div>
+
+      <div class="panel detail-summary-panel">
+        <div class="panel-hdr">FLIGHT PATH CHART</div>
+        <div class="chart-wrap"><canvas id="detail-speed-chart"></canvas></div>
+      </div>
+
+    </div>
+
+    <div class="panel summary-panel">
+      <div class="panel-hdr">AUTO-GENERATED SUMMARY</div>
+      <p id="detail-summary" class="summary-text"></p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════ PAGE 4: FLIGHT ANALYTICS -->
+<section id="page-analytics" class="page">
+  <div class="page-toolbar">
+    <span class="page-title">FLIGHT ANALYTICS</span>
+    <div class="toolbar-actions">
+      <label class="select-wrap">
+        Track: <select id="analytics-track-sel" onchange="onTrackSelected()">
+          <option value="">— all tracks —</option>
+        </select>
+      </label>
+      <label class="select-wrap">
+        Range: <select id="analytics-range" onchange="refreshCharts()">
+          <option value="60">Last 60 s</option>
+          <option value="300">Last 5 min</option>
+          <option value="1800">Last 30 min</option>
+          <option value="3600">Last 1 hr</option>
+        </select>
+      </label>
+      <button class="btn" onclick="refreshCharts()">↻ Refresh</button>
+    </div>
+  </div>
+
+  <div class="analytics-grid">
+    <div class="panel chart-panel">
+      <div class="panel-hdr">SPEED vs TIME  (m/s)</div>
+      <div class="chart-wrap"><canvas id="chart-speed"></canvas></div>
+    </div>
+    <div class="panel chart-panel">
+      <div class="panel-hdr">ESTIMATED RANGE vs TIME  (m)</div>
+      <div class="chart-wrap"><canvas id="chart-alt"></canvas></div>
+    </div>
+    <div class="panel chart-panel">
+      <div class="panel-hdr">ACCELERATION vs TIME  (m/s²)</div>
+      <div class="chart-wrap"><canvas id="chart-accel"></canvas></div>
+    </div>
+    <div class="panel chart-panel">
+      <div class="panel-hdr">HEADING VOLATILITY</div>
+      <div class="chart-wrap"><canvas id="chart-heading"></canvas></div>
+    </div>
+    <div class="panel chart-panel">
+      <div class="panel-hdr">DETECTION CONFIDENCE</div>
+      <div class="chart-wrap"><canvas id="chart-conf"></canvas></div>
+    </div>
+    <div class="panel chart-panel">
+      <div class="panel-hdr">OBJECT COUNT vs TIME</div>
+      <div class="chart-wrap"><canvas id="chart-count"></canvas></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════ PAGE 5: ALERT QUEUE -->
+<section id="page-alerts" class="page">
+  <div class="page-toolbar">
+    <span class="page-title">ALERT QUEUE</span>
+    <div class="toolbar-actions">
+      <label class="select-wrap">
+        Filter: <select id="alert-filter" onchange="loadAlertQueue()">
+          <option value="">All</option>
+          <option value="active">Active</option>
+          <option value="monitoring">Monitoring</option>
+          <option value="escalated">Escalated</option>
+          <option value="resolved">Resolved</option>
+          <option value="archived">Archived</option>
+        </select>
+      </label>
+      <button class="btn" onclick="loadAlertQueue()">↻ Refresh</button>
+    </div>
+  </div>
+
+  <div class="alert-queue-table-wrap">
+    <table class="alert-queue-table">
+      <thead>
+        <tr>
+          <th>SEV</th>
+          <th>ID</th>
+          <th>TIMESTAMP</th>
+          <th>TYPE</th>
+          <th>TRACK</th>
+          <th>INCIDENT</th>
+          <th>STATUS</th>
+          <th>ACTIONS</th>
+        </tr>
+      </thead>
+      <tbody id="alert-queue-body">
+        <tr><td colspan="8" class="empty">Loading alerts…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>

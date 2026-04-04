@@ -1,0 +1,55 @@
+{
+  "detector": {
+    "model": "yolov8n.pt",
+    "confidence_threshold": 0.35,
+    "iou_threshold": 0.5,
+    "tracker": "bytetrack.yaml",
+    "target_classes": null,
+    "_note": "Swap model for a drone-specific weight trained on VisDrone for best results. target_classes: null detects all; e.g. [4,14] for airplane+bird."
+  },
+
+  "video": {
+    "fps": 30
+  },
+
+  "analytics": {
+    "track_point_sample_frames": 5,
+    "calibration": {
+      "pixels_per_meter": 80,
+      "reference_bbox_height": 40,
+      "reference_altitude_m": 30,
+      "hover_speed_mps": 0.8,
+      "hover_confirm_s": 3.0,
+      "circle_window_s": 6.0,
+      "circle_min_rad": 1.8,
+      "approach_aggression_threshold": 0.55,
+      "approach_confirm_s": 2.0
+    }
+  },
+
+  "alerts": {
+    "hover_threshold_seconds": 5,
+    "hover_cooldown_seconds": 20,
+    "circling_cooldown_seconds": 30,
+    "rapid_approach_cooldown_seconds": 15,
+    "incident_timeout_seconds": 4,
+    "clip_save_enabled": true,
+    "log_file": "alerts.log"
+  },
+
+  "threat": {
+    "facility_open_hour": 6,
+    "facility_close_hour": 22
+  },
+
+  "display": {
+    "window_name": "AerialGuard",
+    "hud_panel_width": 290
+  },
+
+  "web_server": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 5000
+  }
+}
